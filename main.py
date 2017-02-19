@@ -22,41 +22,34 @@ form = """
 <form method="post">
     <h1>Signup</h1>
     <br>
-    <label> Username <input type="text" name="usern" value="%(usern)s" required><span class="error">%(error_a)s</span></label><br>
-    <label> Password <input type="password" name="passw" value="%(passw)s" required><span class="error">%(error_b)s</span></label><br>
-    <label> Confirm Password <input type="password" name="verify" value="%(verify)s" required><span class="error">%(error_c)s</span></label><br>
-    <label> E-mail <input type="email" name="email" value="%(email)s"><span class="error">%(error_d)s</span></label><br>
+    <label> Username <input type="text" name="usern" value="%(usern)s"><span class="error">%(error_a)s</span></label><br>
+    <label> Password <input type="password" name="passw" value="%(passw)s"><span class="error">%(error_b)s</span></label><br>
+    <label> Confirm Password <input type="password" name="verify" value="%(verify)s"><span class="error">%(error_c)s</span></label><br>
+    <label> E-mail <input type="text" name="email" value="%(email)s"><span class="error">%(error_d)s</span></label><br>
     <br>
     <br>
     <input type="submit">
 </form>
 """
 
+USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
 def valid_username(usern):
-    if usern and (' ' not in usern):
-        return usern
+    return USER_RE.match(usern)
 
+PASSWORD_RE = re.compile(r"^.{3,20}$")
 def valid_password(passw):
-    if passw and (' ' not in passw):
-        return passw
+    return PASSWORD_RE.match(passw)
 
 def verify_password(passw, verify):
     if passw and verify and passw == verify:
         return verify
 
+EMAIL_RE = re.compile(r"^[\S]+@[\S]+.[\S]+$")
 def valid_email(email):
-    if email and ('@' in email):
-        return email
+    return EMAIL_RE.match(email)
 
 def escape_html(s):
     return cgi.escape(s, quote = True)
-#t2 = "I think %s and %s are perfectly normal things to do in public"
-#def sub2(s1, s2)
-#    return t2 % (s1, s2)
-#sub2('running', 'sleeping')
-#t3 = "I'm %(nickname)s. My real name is %(name)s, but my friends call me %(nickname)s."
-#   def sub_m(name, nickname):
-#       return t3 % {'name': name, 'nickname': nickname}
 
 class MainHandler(webapp2.RequestHandler):
     def write_form(self, error_a="", error_b="", error_c="", error_d="", usern="", passw="", verify="", email=""):
@@ -72,7 +65,7 @@ class MainHandler(webapp2.RequestHandler):
         username = valid_username(user_username)
         password = valid_password(user_password)
         verify = verify_password(user_password, user_verify)
-        email = valid_email(user_email)
+
 
         if not username:
             self.write_form("<font style='color: red'>That is not a valid username!</font>", "", "", "", "", "", "", user_email)
@@ -83,15 +76,20 @@ class MainHandler(webapp2.RequestHandler):
                 if not verify:
                     self.write_form("", "", "<font style='color: red'>Passwords don't match!</font>", "", user_username, "", "", user_email)
                 else:
-                    if not email:
-                        self.write_form("", "", "", "<font style='color: red'>That is not a valid email!</font>", user_username, "", "", "")
+                    if user_email:
+                        email = valid_email(user_email)
+                        if not email:
+                            self.write_form("", "", "", "<font style='color: red'>That is not a valid email!</font>", user_username, "", "", "")
+                        else:
+                            self.redirect("/welcome")
                     else:
                         self.redirect("/welcome")
 
 class WelcomeHandler(webapp2.RequestHandler):
     def get(self):
         username = self.request.get('usern')
-        self.response.write("<h1>Welcome," + username)
+        content = "Welcome," + username
+        self.response.write(content)
 
 app = webapp2.WSGIApplication([
     ('/', MainHandler), ('/welcome', WelcomeHandler)
